@@ -1,0 +1,30 @@
+# Next.js
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Local databases
+earnings.db
+earnings.db-journal
+earnings.db-wal
+earnings.db-shm
+*.db
+*.sqlite
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env*.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
