@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         const res = await client.execute({
           sql: `
             INSERT INTO transactions (
-              id, batch_id, order_id, is_renewal, renewal_cycle,
+              id, batch_id, order_id, base_order_id, is_renewal, renewal_cycle,
               transaction_date, transaction_time, transaction_timestamp,
               tax_type, transaction_type, refund_type, product_title, package_id,
               product_type, sku_id, hardware, buyer_country, buyer_state,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
               base_plan_id, offer_id, group_id, first_usd_1m_eligible,
               service_fee_percent, fee_description, promotion_id, sales_channel
             ) VALUES (
-              ?, ?, ?, ?, ?,
+              ?, ?, ?, ?, ?, ?,
               ?, ?, ?,
               ?, ?, ?, ?, ?,
               ?, ?, ?, ?, ?,
@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
             tx.id,
             tx.batchId ?? null,
             tx.orderId ?? null,
+            tx.baseOrderId ?? null,
             tx.isRenewal ?? 0,
             tx.renewalCycle ?? 0,
             tx.transactionDate,

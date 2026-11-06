@@ -209,6 +209,8 @@ export default function DashboardPage() {
           <RenewalRatioChart
             initialOrders={kpis.initialOrders}
             initialRevenue={kpis.initialRevenue}
+            trialConversions={kpis.trialConversions}
+            directPurchases={kpis.directPurchases}
             renewalOrders={kpis.renewalOrders}
             renewalRevenue={kpis.renewalRevenue}
             renewalShare={kpis.renewalShare}

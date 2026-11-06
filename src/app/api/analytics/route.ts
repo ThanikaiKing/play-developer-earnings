@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
           COALESCE(SUM(CASE WHEN transaction_type = 'Charge' THEN 1 ELSE 0 END), 0) AS total_charges,
           COALESCE(SUM(CASE WHEN transaction_type = 'Charge' AND is_renewal = 0 THEN 1 ELSE 0 END), 0) AS initial_orders,
           COALESCE(SUM(CASE WHEN transaction_type = 'Charge' AND is_renewal = 0 THEN amount_merchant_currency ELSE 0 END), 0) AS initial_revenue,
+          COALESCE(SUM(CASE WHEN transaction_type = 'Charge' AND order_id LIKE '%..0%' THEN 1 ELSE 0 END), 0) AS trial_conversions,
+          COALESCE(SUM(CASE WHEN transaction_type = 'Charge' AND order_id NOT LIKE '%..%' THEN 1 ELSE 0 END), 0) AS direct_purchases,
           COALESCE(SUM(CASE WHEN transaction_type = 'Charge' AND is_renewal = 1 THEN 1 ELSE 0 END), 0) AS renewal_orders,
           COALESCE(SUM(CASE WHEN transaction_type = 'Charge' AND is_renewal = 1 THEN amount_merchant_currency ELSE 0 END), 0) AS renewal_revenue,
           COUNT(*) AS total_rows
@@ -68,6 +70,8 @@ export async function GET(request: NextRequest) {
     const totalCharges = Number(kpiRow.total_charges || 0);
     const initialOrders = Number(kpiRow.initial_orders || 0);
     const initialRevenue = Number(kpiRow.initial_revenue || 0);
+    const trialConversions = Number(kpiRow.trial_conversions || 0);
+    const directPurchases = Number(kpiRow.direct_purchases || 0);
     const renewalOrders = Number(kpiRow.renewal_orders || 0);
     const renewalRevenue = Number(kpiRow.renewal_revenue || 0);
     const aov = totalCharges > 0 ? gross / totalCharges : 0;
@@ -248,6 +252,8 @@ export async function GET(request: NextRequest) {
         aov: Number(aov.toFixed(2)),
         initialOrders,
         initialRevenue: Number(initialRevenue.toFixed(2)),
+        trialConversions,
+        directPurchases,
         renewalOrders,
         renewalRevenue: Number(renewalRevenue.toFixed(2)),
         renewalShare: Number(renewalShare.toFixed(1)),

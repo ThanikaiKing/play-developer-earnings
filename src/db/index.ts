@@ -38,6 +38,7 @@ export async function ensureTablesExist() {
       id TEXT PRIMARY KEY,
       batch_id TEXT REFERENCES import_batches(id) ON DELETE CASCADE,
       order_id TEXT,
+      base_order_id TEXT,
       is_renewal INTEGER NOT NULL DEFAULT 0,
       renewal_cycle INTEGER NOT NULL DEFAULT 0,
       transaction_date TEXT NOT NULL,
@@ -70,10 +71,28 @@ export async function ensureTablesExist() {
     );
   `);
 
+  try {
+    await client.execute(`ALTER TABLE transactions ADD COLUMN base_order_id TEXT;`);
+  } catch {
+    // Column already exists
+  }
+
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(transaction_date);`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_tx_sku ON transactions(sku_id);`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_tx_order ON transactions(order_id);`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_tx_base_order ON transactions(base_order_id);`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_tx_type ON transactions(transaction_type);`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_tx_batch ON transactions(batch_id);`);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS subscription_metrics (
+      date TEXT PRIMARY KEY,
+      total_subscriptions INTEGER NOT NULL DEFAULT 0,
+      new_subscriptions INTEGER NOT NULL DEFAULT 0,
+      canceled_subscriptions INTEGER NOT NULL DEFAULT 0,
+      net_growth INTEGER NOT NULL DEFAULT 0,
+      notes TEXT
+    );
+  `);
 }
 

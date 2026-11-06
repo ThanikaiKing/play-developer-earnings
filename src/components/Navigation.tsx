@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  Users,
   Receipt,
   FileSpreadsheet,
   UploadCloud,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/subscribers", label: "Subscribers", icon: Users },
   { href: "/transactions", label: "Transactions", icon: Receipt },
   { href: "/reconciliation", label: "Tax & Reconciliation", icon: FileSpreadsheet },
   { href: "/upload", label: "Upload & Batches", icon: UploadCloud },

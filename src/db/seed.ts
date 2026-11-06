@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { client, ensureTablesExist } from "./index";
-import { parseGooglePlayCsv } from "../lib/csv-parser";
+import { parseGooglePlayCsv, isSubscriptionRetentionCsv, parseSubscriptionMetricsCsv } from "../lib/csv-parser";
 
 async function findCsvFiles(dir: string): Promise<string[]> {
   const results: string[] = [];
@@ -43,10 +43,41 @@ async function runSeed() {
   let grandTax = 0;
   let grandRefund = 0;
   let grandNet = 0;
+  let totalSubMetrics = 0;
 
   for (const filePath of files) {
     const filename = path.basename(filePath);
     const content = fs.readFileSync(filePath, "utf-8");
+
+    // Handle Subscription Retention / Status report
+    if (isSubscriptionRetentionCsv(content)) {
+      const metrics = parseSubscriptionMetricsCsv(content);
+      for (const m of metrics) {
+        await client.execute({
+          sql: `
+            INSERT INTO subscription_metrics (date, total_subscriptions, new_subscriptions, canceled_subscriptions, net_growth, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(date) DO UPDATE SET
+              total_subscriptions=excluded.total_subscriptions,
+              new_subscriptions=excluded.new_subscriptions,
+              canceled_subscriptions=excluded.canceled_subscriptions,
+              net_growth=excluded.net_growth,
+              notes=excluded.notes
+          `,
+          args: [
+            m.date,
+            m.totalSubscriptions,
+            m.newSubscriptions,
+            m.canceledSubscriptions,
+            m.netGrowth,
+            m.notes ?? null,
+          ],
+        });
+      }
+      totalSubMetrics += metrics.length;
+      console.log(`✓ ${filename}: Ingested ${metrics.length} daily subscriber retention records.`);
+      continue;
+    }
 
     let parsedResult;
     try {
@@ -94,7 +125,7 @@ async function runSeed() {
       const res = await client.execute({
         sql: `
           INSERT INTO transactions (
-            id, batch_id, order_id, is_renewal, renewal_cycle,
+            id, batch_id, order_id, base_order_id, is_renewal, renewal_cycle,
             transaction_date, transaction_time, transaction_timestamp,
             tax_type, transaction_type, refund_type, product_title, package_id,
             product_type, sku_id, hardware, buyer_country, buyer_state,
@@ -103,7 +134,7 @@ async function runSeed() {
             base_plan_id, offer_id, group_id, first_usd_1m_eligible,
             service_fee_percent, fee_description, promotion_id, sales_channel
           ) VALUES (
-            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
@@ -118,6 +149,7 @@ async function runSeed() {
           tx.id,
           tx.batchId ?? null,
           tx.orderId ?? null,
+          tx.baseOrderId ?? null,
           tx.isRenewal ?? 0,
           tx.renewalCycle ?? 0,
           tx.transactionDate,

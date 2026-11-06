@@ -104,6 +104,48 @@ export interface ParsedCsvResult {
   duplicateCount: number;
 }
 
+export function isSubscriptionRetentionCsv(csvContent: string): boolean {
+  const parsed = Papa.parse<Record<string, string>>(csvContent, {
+    header: true,
+    preview: 2,
+    skipEmptyLines: true,
+    transformHeader: (h) => h.trim(),
+  });
+  const fields = (parsed.meta.fields || []).map((f) => f.trim());
+  return fields.includes("Total subscriptions") && fields.includes("New subscriptions");
+}
+
+export function parseSubscriptionMetricsCsv(csvContent: string) {
+  const parsed = Papa.parse<Record<string, string>>(csvContent, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (h) => h.trim(),
+  });
+
+  const results = [];
+  for (const row of parsed.data) {
+    const rawDate = row["Date"] || "";
+    if (!rawDate) continue;
+    const { normalized } = normalizeDate(rawDate);
+    const total = parseInt(row["Total subscriptions"] || "0", 10) || 0;
+    const newSubs = parseInt(row["New subscriptions"] || "0", 10) || 0;
+    const canceled = parseInt(row["Canceled subscriptions"] || "0", 10) || 0;
+    const net = newSubs - canceled;
+    const notes = (row["Notes"] || "").trim() || null;
+
+    results.push({
+      date: normalized,
+      totalSubscriptions: total,
+      newSubscriptions: newSubs,
+      canceledSubscriptions: canceled,
+      netGrowth: net,
+      notes,
+    });
+  }
+  return results;
+}
+
+
 export function parseGooglePlayCsv(
   csvContent: string,
   filename: string,
@@ -166,14 +208,25 @@ export function parseGooglePlayCsv(
     const { normalized: txDate, yearMonth } = normalizeDate(dateRaw);
     monthCounts[yearMonth] = (monthCounts[yearMonth] || 0) + 1;
 
-    // Detect renewal status
+    // Base Order ID (subscriber ID without renewal suffix)
+    const baseOrderId = rawOrder ? rawOrder.split("..")[0] : null;
+
+    // Detect renewal status:
+    // GPA ..0 is NOT a renewal; it's the first time user starts paying after the 3-day trial!
+    // Suffix ..1 is Renewal #1, ..2 is Renewal #2, etc. Orders without .. are direct first purchases.
     let isRenewal = 0;
     let renewalCycle = 0;
     if (rawOrder.includes("..")) {
-      isRenewal = 1;
       const parts = rawOrder.split("..");
       const cycleNum = parseInt(parts[1], 10);
-      renewalCycle = isNaN(cycleNum) ? 1 : cycleNum + 1;
+      if (!isNaN(cycleNum) && cycleNum > 0) {
+        isRenewal = 1;
+        renewalCycle = cycleNum;
+      } else {
+        // cycleNum === 0 -> Trial Conversion (First paid cycle)
+        isRenewal = 0;
+        renewalCycle = 0;
+      }
     }
 
     const hardware = (row["Hardware"] || "").trim();
@@ -188,6 +241,7 @@ export function parseGooglePlayCsv(
       id,
       batchId: actualBatchId,
       orderId: rawOrder || null,
+      baseOrderId,
       isRenewal,
       renewalCycle,
       transactionDate: txDate,

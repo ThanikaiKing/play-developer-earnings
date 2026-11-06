@@ -6,12 +6,18 @@ A high-performance Next.js application built with **Next.js 15**, **Drizzle ORM*
 
 ## 🌟 Key Features
 
-1. **Executive Revenue Dashboard**
+1. **Active Subscribers & Payment Trail Explorer (`/subscribers`)**
+   - **Active vs Expired Tracking**: Instant visibility of **84 currently active subscribers** (Yearly 365-day plans + Monthly subscribers billed in current cycle).
+   - **Accurate 3-Day Free Trial Conversion Handling**: Correctly recognizes `GPA.xxxx..0` as the **First Paid Conversion** from trial ($0.00 trial order -> first paid conversion `..0`), while `..1`, `..2`, `..3` are tracked as subsequent recurring renewals.
+   - **Interactive Drill-Down Modal**: Clicking on any subscriber opens their complete profile and visual chronological payment trail showing every billing event, Google Fee (15%), Net payout, and device used.
+   - **Subscriber Lifetime Value (LTV)**: Track total spend and renewal count per customer.
+
+2. **Executive Revenue Dashboard (`/`)**
    - **Net Developer Payout**: Exact amount deposited into bank account after platform commissions and statutory withholdings.
    - **Gross Customer Spend**: Total transaction charges collected from users.
    - **Google Commission Deductions**: 15% Google Play Tier fee tracking.
    - **India Section 194-O TDS**: Detailed tracking of tax deducted at source by Google.
-   - **Recurring Renewal Cohort Analysis**: Tracks how much revenue comes from recurring subscription renewals (`GPA.xxxx..0`, `..1`) vs initial user signups (`GPA.xxxx`).
+   - **First-Time Conversions vs Renewals**: Clear breakdown of 3-Day Trial Conversions (`..0`) vs Direct Purchases vs Recurring Renewals (`..1+`).
    - **Product & SKU Breakdown**: Distribution between subscriptions (`tvk_ai_status_pro`, `warrior_pro_monthly`, `warrior_pro_quarterly`, `warrior_pro_yearly`).
    - **Geographic & Hardware Insights**: State-by-state gross spend and top customer Android smartphone models.
 

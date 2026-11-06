@@ -20,8 +20,9 @@ export const transactions = sqliteTable(
     id: text("id").primaryKey(), // Deterministic SHA-256 hash for idempotency
     batchId: text("batch_id").references(() => importBatches.id, { onDelete: "cascade" }),
     orderId: text("order_id"), // GPA.xxxx-xxxx-xxxx-xxxxx (null for tax rows)
-    isRenewal: integer("is_renewal").notNull().default(0), // 1 if contains ..
-    renewalCycle: integer("renewal_cycle").notNull().default(0), // 0 for initial, 1 for ..0, etc.
+    baseOrderId: text("base_order_id"), // Base GPA order ID without renewal suffix (e.g. GPA.3398-3215-6148-97126)
+    isRenewal: integer("is_renewal").notNull().default(0), // 1 if subsequent renewal cycle
+    renewalCycle: integer("renewal_cycle").notNull().default(0), // 0 for initial/trial conversion, 1 for 1st renewal, etc.
     transactionDate: text("transaction_date").notNull(), // YYYY-MM-DD
     transactionTime: text("transaction_time").notNull(), // Original time e.g. 10:33:00 AM PST
     transactionTimestamp: text("transaction_timestamp").notNull(), // ISO timestamp UTC
@@ -54,6 +55,7 @@ export const transactions = sqliteTable(
     index("idx_tx_date").on(table.transactionDate),
     index("idx_tx_sku").on(table.skuId),
     index("idx_tx_order").on(table.orderId),
+    index("idx_tx_base_order").on(table.baseOrderId),
     index("idx_tx_type").on(table.transactionType),
     index("idx_tx_batch").on(table.batchId),
   ]
@@ -63,4 +65,17 @@ export type ImportBatch = typeof importBatches.$inferSelect;
 export type NewImportBatch = typeof importBatches.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
+
+export const subscriptionMetrics = sqliteTable("subscription_metrics", {
+  date: text("date").primaryKey(), // YYYY-MM-DD
+  totalSubscriptions: integer("total_subscriptions").notNull().default(0),
+  newSubscriptions: integer("new_subscriptions").notNull().default(0),
+  canceledSubscriptions: integer("canceled_subscriptions").notNull().default(0),
+  netGrowth: integer("net_growth").notNull().default(0),
+  notes: text("notes"),
+});
+
+export type SubscriptionMetric = typeof subscriptionMetrics.$inferSelect;
+export type NewSubscriptionMetric = typeof subscriptionMetrics.$inferInsert;
+
 
