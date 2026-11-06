@@ -22,8 +22,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (selectedSku && selectedSku !== "all") {
-      whereClauses.push("sku_id = ?");
-      whereArgs.push(selectedSku);
+      if (selectedSku.includes(":")) {
+        const [sku, plan] = selectedSku.split(":");
+        whereClauses.push("sku_id = ? AND base_plan_id = ?");
+        whereArgs.push(sku, plan === "yearly" ? "yearly-plan" : "monthly-plan");
+      } else {
+        whereClauses.push("sku_id = ?");
+        whereArgs.push(selectedSku);
+      }
     }
 
     if (startDate) {
@@ -122,18 +128,31 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // 3. SKU Breakdown
+    // 3. SKU Breakdown (splitting TVK AI Status Pro into Yearly ₹599 and Monthly ₹99)
     const skuRes = await client.execute({
       sql: `
         SELECT
-          COALESCE(sku_id, 'Tax/Adjustments') AS sku_id,
-          MAX(product_title) AS product_title,
+          CASE 
+            WHEN sku_id = 'tvk_ai_status_pro' AND (base_plan_id = 'yearly-plan' OR base_plan_id LIKE '%year%') THEN 'tvk_ai_status_pro:yearly'
+            WHEN sku_id = 'tvk_ai_status_pro' AND (base_plan_id = 'monthly-plan' OR base_plan_id LIKE '%month%') THEN 'tvk_ai_status_pro:monthly'
+            ELSE sku_id 
+          END AS item_key,
+          sku_id,
+          base_plan_id,
+          CASE
+            WHEN sku_id = 'tvk_ai_status_pro' AND (base_plan_id = 'yearly-plan' OR base_plan_id LIKE '%year%') THEN 'TVK AI Status Pro - Yearly (₹599)'
+            WHEN sku_id = 'tvk_ai_status_pro' AND (base_plan_id = 'monthly-plan' OR base_plan_id LIKE '%month%') THEN 'TVK AI Status Pro - Monthly (₹99)'
+            WHEN sku_id = 'warrior_pro_monthly' THEN 'Warrior Pro - Monthly (₹49)'
+            WHEN sku_id = 'warrior_pro_yearly' THEN 'Warrior Pro - 1 Year (₹299)'
+            WHEN sku_id = 'warrior_pro_quarterly' THEN 'Warrior Pro - 3 Months (₹99)'
+            ELSE MAX(product_title)
+          END AS display_title,
           COALESCE(SUM(CASE WHEN transaction_type = 'Charge' THEN amount_merchant_currency ELSE 0 END), 0) AS gross,
           COALESCE(SUM(amount_merchant_currency), 0) AS net,
           COALESCE(SUM(CASE WHEN transaction_type = 'Charge' THEN 1 ELSE 0 END), 0) AS count
         FROM transactions
         WHERE ${whereSql} AND sku_id IS NOT NULL AND sku_id != ''
-        GROUP BY sku_id
+        GROUP BY item_key
         ORDER BY gross DESC
       `,
       args: whereArgs,
@@ -142,8 +161,10 @@ export async function GET(request: NextRequest) {
     const skuBreakdown = skuRes.rows.map((row: any) => {
       const g = Number(row.gross || 0);
       return {
-        skuId: row.sku_id,
-        productTitle: row.product_title || row.sku_id,
+        skuId: row.item_key,
+        baseSkuId: row.sku_id,
+        basePlanId: row.base_plan_id,
+        productTitle: row.display_title || row.sku_id,
         gross: Number(g.toFixed(2)),
         net: Number(Number(row.net || 0).toFixed(2)),
         count: Number(row.count || 0),
@@ -236,10 +257,13 @@ export async function GET(request: NextRequest) {
     `);
 
     const availableMonths = optMonthRes.rows.map((r: any) => r.month as string);
-    const availableSkus = optSkuRes.rows.map((r: any) => ({
-      skuId: r.sku_id as string,
-      title: r.title as string,
-    }));
+    const availableSkus = [
+      { skuId: "tvk_ai_status_pro:yearly", title: "TVK AI Status Pro - Yearly (₹599)" },
+      { skuId: "tvk_ai_status_pro:monthly", title: "TVK AI Status Pro - Monthly (₹99)" },
+      { skuId: "warrior_pro_monthly", title: "Warrior Pro - Monthly (₹49)" },
+      { skuId: "warrior_pro_quarterly", title: "Warrior Pro - 3 Months (₹99)" },
+      { skuId: "warrior_pro_yearly", title: "Warrior Pro - 1 Year (₹299)" },
+    ];
 
     return NextResponse.json({
       kpis: {

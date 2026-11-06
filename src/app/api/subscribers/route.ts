@@ -230,7 +230,18 @@ export async function GET(request: NextRequest) {
     }
 
     if (skuFilter && skuFilter !== "all") {
-      filtered = filtered.filter((s) => s.skuId === skuFilter);
+      if (skuFilter.includes(":")) {
+        const [skuPart, planPart] = skuFilter.split(":");
+        filtered = filtered.filter(
+          (s) =>
+            s.skuId === skuPart &&
+            (planPart === "yearly"
+              ? s.basePlanId === "yearly-plan" || s.basePlanId?.includes("year")
+              : s.basePlanId === "monthly-plan" || s.basePlanId?.includes("month"))
+        );
+      } else {
+        filtered = filtered.filter((s) => s.skuId === skuFilter);
+      }
     }
 
     if (search) {

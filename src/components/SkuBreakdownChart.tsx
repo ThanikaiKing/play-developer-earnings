@@ -18,7 +18,7 @@ interface SkuBreakdownChartProps {
   data: SkuItem[];
 }
 
-const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#06b6d4", "#ec4899", "#8b5cf6"];
+const COLORS = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
 
 export function SkuBreakdownChart({ data }: SkuBreakdownChartProps) {
   const [mounted, setMounted] = useState(false);

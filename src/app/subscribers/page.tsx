@@ -22,10 +22,12 @@ import { formatCurrency } from "@/lib/currency";
 import { formatDate } from "@/lib/utils";
 import { MetricCard } from "@/components/MetricCard";
 import { SubscriberModal } from "@/components/SubscriberModal";
+import { SubscriberGrowthChart } from "@/components/SubscriberGrowthChart";
 
 export default function SubscribersPage() {
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [retentionTimeline, setRetentionTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -45,6 +47,7 @@ export default function SubscribersPage() {
       const data = await res.json();
       setSubscribers(data.subscribers || []);
       setSummary(data.summary || null);
+      setRetentionTimeline(data.retentionTimeline || []);
     } catch {
       // Error handling
     } finally {
@@ -175,10 +178,11 @@ export default function SubscribersPage() {
           className="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
         >
           <option value="all">All Subscription Products</option>
-          <option value="tvk_ai_status_pro">TVK AI Status Pro</option>
-          <option value="warrior_pro_monthly">Warrior Pro - Monthly</option>
-          <option value="warrior_pro_quarterly">Warrior Pro - 3 Months</option>
-          <option value="warrior_pro_yearly">Warrior Pro - 1 Year</option>
+          <option value="tvk_ai_status_pro:yearly">TVK AI Status Pro - Yearly (₹599)</option>
+          <option value="tvk_ai_status_pro:monthly">TVK AI Status Pro - Monthly (₹99)</option>
+          <option value="warrior_pro_monthly">Warrior Pro - Monthly (₹49)</option>
+          <option value="warrior_pro_quarterly">Warrior Pro - 3 Months (₹99)</option>
+          <option value="warrior_pro_yearly">Warrior Pro - 1 Year (₹299)</option>
         </select>
       </div>
 

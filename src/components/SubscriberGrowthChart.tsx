@@ -197,3 +197,4 @@ export function SubscriberGrowthChart({ data }: SubscriberGrowthChartProps) {
     </div>
   );
 }
+

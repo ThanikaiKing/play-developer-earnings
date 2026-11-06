@@ -27,8 +27,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (sku && sku !== "all") {
-      whereClauses.push("sku_id = ?");
-      whereArgs.push(sku);
+      if (sku.includes(":")) {
+        const [skuPart, planPart] = sku.split(":");
+        whereClauses.push("sku_id = ? AND base_plan_id = ?");
+        whereArgs.push(skuPart, planPart === "yearly" ? "yearly-plan" : "monthly-plan");
+      } else {
+        whereClauses.push("sku_id = ?");
+        whereArgs.push(sku);
+      }
     }
 
     if (type && type !== "all") {
