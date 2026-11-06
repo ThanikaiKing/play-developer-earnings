@@ -254,6 +254,18 @@ export async function GET(request: NextRequest) {
     const totalSubs = subscriberMap.size;
     const avgLtv = totalSubs > 0 ? grandGross / totalSubs : 0;
 
+    // Fetch subscription retention & churn timeline if available
+    const retentionRes = await client.execute(`
+      SELECT 
+        date,
+        total_subscriptions AS totalSubscriptions,
+        new_subscriptions AS newSubscriptions,
+        canceled_subscriptions AS canceledSubscriptions,
+        net_growth AS netGrowth
+      FROM subscription_metrics
+      ORDER BY date ASC
+    `);
+
     return NextResponse.json({
       summary: {
         totalSubscribers: totalSubs,
@@ -264,8 +276,10 @@ export async function GET(request: NextRequest) {
         avgLtv: Number(avgLtv.toFixed(2)),
       },
       subscribers: filtered,
+      retentionTimeline: retentionRes.rows,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

@@ -320,3 +320,4 @@ export function SubscriberModal({ subscriber, onClose }: SubscriberModalProps) {
     </div>
   );
 }
+
